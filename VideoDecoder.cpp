@@ -15,7 +15,7 @@ char errbuf[1024]; \
 #define CODE(func, code) \
 if (ret < 0) { \
         ERROR_BUF; \
-        qDebug() << #func << "error" << errbuf; \
+        qDebug() << __LINE__ << #func << "error" << errbuf; \
         code; \
 }
 
@@ -179,6 +179,7 @@ int VideoDecoder::initDecoder(AVFormatContext **fmtCtx)
     RET(avcodec_parameters_to_context);
     ret = avcodec_open2(_decodeCtx, decoder, nullptr);
     RET(avcodec_open2);
+    //根据视频读出来的fps来设置播放的fps
     AVRational fps = _stream->r_frame_rate;
     videoFrame = fps.num / fps.den;
     //qDebug() << _stream->r_frame_rate.num << "/" << _stream->r_frame_rate.den;

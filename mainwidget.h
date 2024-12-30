@@ -19,6 +19,9 @@ public:
     MainWidget(QWidget *parent = nullptr);
     ~MainWidget();
 
+protected:
+    bool event(QEvent *event) override;
+
 private slots:
     void onStateChanged(State state);
     void onInitFinished();

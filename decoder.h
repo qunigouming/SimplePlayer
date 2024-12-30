@@ -47,6 +47,9 @@ private:
     int initDecoder(AVFormatContext** fmtCtx);
     int initSwr();
 
+    int16_t clampInt16(int32_t value);          //阈值限定
+    void reducePcmVolum(int16_t *pcm_data, size_t num_samples, float reduction_factor);     //降低PCM数据的音量
+
 private:
     //音频重采样参数结构体
     typedef struct {

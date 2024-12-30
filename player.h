@@ -41,8 +41,7 @@ private:
     void free();                    //释放操作
 
 private:
-    std::atomic<State> _state = State::STOP;
-    //State _state = State::STOP;
+    State _state = State::STOP;     //此变量有两线程访问的风险
     int _seekTime = -1;             //seek操作变量，值为seek的时间，单位s
     QString _fileName;
     AudioDecoder* _aDecoder = nullptr;

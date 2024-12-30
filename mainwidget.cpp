@@ -2,6 +2,8 @@
 #include "./ui_mainwidget.h"
 #include <QFileDialog>
 #include "displaywidget.h"
+#include <QEvent>
+#include <QKeyEvent>
 
 MainWidget::MainWidget(QWidget *parent)
     : QWidget(parent)
@@ -22,10 +24,10 @@ MainWidget::MainWidget(QWidget *parent)
         int s = round(value);
         ui->currentSlider->setValue(s);
         ui->currentLab->setText(getTimeText(s));
-        //同步进度条时改变播放状态
+        //播放完毕停止
         if (s == ui->currentSlider->maximum()) {
-            qDebug() << ui->currentSlider->maximum();
-            _player->pause();
+            //qDebug() << ui->currentSlider->maximum();
+            on_stopBtn_clicked();
         }
     });
     connect(ui->currentSlider, &videoSlider::clicked, this, [this](videoSlider* slider){
@@ -38,6 +40,28 @@ MainWidget::~MainWidget()
     delete ui;
 }
 
+bool MainWidget::event(QEvent *event)
+{
+    //按下左右键改变进度
+    if (event->type() == QEvent::KeyPress) {
+        QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
+        if (keyEvent->key() == Qt::Key_Left) {
+            qDebug() << "左键按下";
+            int value = ui->currentSlider->value();
+            value = (value < 5) ? 0 : value - 5;
+            _player->seekTime(value);
+        }
+        else if (keyEvent->key() == Qt::Key_Right) {
+            qDebug() << "右键按下";
+            int maxValue = ui->currentSlider->maximum();
+            int value = ui->currentSlider->value();
+            if ((value + 5) < maxValue) value += 5;
+            _player->seekTime(value);
+        }
+    }
+    return QWidget::event(event);
+}
+
 void MainWidget::onStateChanged(State state)
 {
     if (state == State::PLAYING) ui->playBtn->setText("暂停");
@@ -45,7 +69,10 @@ void MainWidget::onStateChanged(State state)
     if (state == State::STOP) {
         ui->playBtn->setEnabled(false);
         ui->stopBtn->setEnabled(false);
+        ui->currentSlider->setValue(0);
         ui->currentSlider->setEnabled(false);
+        ui->currentLab->setText(getTimeText(0));
+        ui->durationLab->setText(getTimeText(0));
         ui->volumnBtn->setEnabled(false);
     }
     else {

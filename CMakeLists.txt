@@ -53,6 +53,9 @@ else()
             displaywidget.h displaywidget.cpp
             res.qrc
             videoslider.h videoslider.cpp
+            volume.h volume.cpp volume.ui
+
+
         )
     endif()
 endif()

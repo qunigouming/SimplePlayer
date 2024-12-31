@@ -4,6 +4,7 @@
 #include <QWidget>
 #include <QString>
 #include "player.h"
+#include "volume.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -21,6 +22,7 @@ public:
 
 protected:
     bool event(QEvent *event) override;
+    bool eventFilter(QObject *watched, QEvent *e) override;
 
 private slots:
     void onStateChanged(State state);
@@ -32,9 +34,16 @@ private slots:
     void on_stopBtn_clicked();
 
 private:
+    void setSilenceUI();
+    void setHasVolumeUI();
+
+private:
     QString getTimeText(int value);
 
     Ui::MainWidget *ui;
+    Volume* _volumeWidget = nullptr;
     Player* _player;
+
+    bool _volumeBtnChecked = true;        //按钮点击变量
 };
 #endif // MAINWIDGET_H

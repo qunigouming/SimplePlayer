@@ -15,11 +15,17 @@ MainWidget::MainWidget(QWidget *parent)
     ui->fileCombox->addItem("https://vs-cmaf-push-ww-live.akamaized.net/x=4/i=urn:bbc:pips:service:bbc_news_channel_hd/iptv_hd_abr_v1.mpd");
     ui->fileCombox->addItem("rtmp://192.168.186.130:1935/live1");
     ui->fileCombox->setCurrentIndex(0);
+    _volumeWidget = new Volume(this);
+    _volumeWidget->installEventFilter(this);
+    ui->volumeBtn->installEventFilter(this);
+    _volumeWidget->hide();
+    ui->volumeBtn->setFont(QFont("volume"));
+    ui->volumeBtn->setText(QChar(0xea0d));
     connect(_player, &Player::stateChanged, this, &MainWidget::onStateChanged);
     connect(_player, &Player::initFinished, this, &MainWidget::onInitFinished);
     //connect第五个参数不填默认为AutoConnection，既两者同线程下用DirectConnection，异线程用QueuedConnection，使用事件队列处理信号槽，可能会导致OpenGL访问空指针问题，既程序崩溃，
     //打印现象为槽函数触发了两次，绘制函数触发一次，故使用中断处理。但是正常情况下子线程要考虑音视频同步，会比主线程慢，既在发送信号前延时可观察到程序并不会崩溃
-    connect(_player->getVideoPtr(), &VideoDecoder::frameDecoded, ui->displayWidget, &DisplayWidget::onFrameDecoded, Qt::DirectConnection);
+    connect(&VideoDecoder::getInstall(), &VideoDecoder::frameDecoded, ui->displayWidget, &DisplayWidget::onFrameDecoded, Qt::DirectConnection);
     connect(_player, &Player::SyncTime, this, [this](double value){
         int s = round(value);
         ui->currentSlider->setValue(s);
@@ -32,6 +38,15 @@ MainWidget::MainWidget(QWidget *parent)
     });
     connect(ui->currentSlider, &videoSlider::clicked, this, [this](videoSlider* slider){
         _player->seekTime(slider->value());
+    });
+    connect(_volumeWidget, &Volume::changeVolume, &AudioDecoder::getInstall(), [this](float volume) {
+        if (volume == 0) {
+            setSilenceUI();
+        }
+        else {
+            setHasVolumeUI();
+        }
+        AudioDecoder::getInstall().changeVolume(volume);
     });
 }
 
@@ -46,13 +61,11 @@ bool MainWidget::event(QEvent *event)
     if (event->type() == QEvent::KeyPress) {
         QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
         if (keyEvent->key() == Qt::Key_Left) {
-            qDebug() << "左键按下";
             int value = ui->currentSlider->value();
             value = (value < 5) ? 0 : value - 5;
             _player->seekTime(value);
         }
         else if (keyEvent->key() == Qt::Key_Right) {
-            qDebug() << "右键按下";
             int maxValue = ui->currentSlider->maximum();
             int value = ui->currentSlider->value();
             if ((value + 5) < maxValue) value += 5;
@@ -60,6 +73,41 @@ bool MainWidget::event(QEvent *event)
         }
     }
     return QWidget::event(event);
+}
+
+bool MainWidget::eventFilter(QObject *watched, QEvent *e)
+{
+    if (watched == ui->volumeBtn) {
+        if (e->type() == QMouseEvent::Enter){
+            //获取到控件在全局的位置来移动音量窗口的位置
+            _volumeWidget->move(ui->volumeBtn->mapToGlobal(QPoint(0,0)).x(), ui->volumeBtn->mapToGlobal(QPoint(0,0)).y() - 121);
+            _volumeWidget->show();
+        }
+        if (e->type() == QMouseEvent::Leave){
+            //鼠标不在音量窗口上关闭音量窗体
+            if (!_volumeWidget->geometry().contains(QCursor::pos())){
+                _volumeWidget->hide();
+            }
+        }
+        //疑点，按钮安装了事件过滤器后信号槽失去了作用
+        if (e->type() == QMouseEvent::MouseButtonPress) {
+            if (_volumeBtnChecked) {
+                //静音
+                setSilenceUI();
+                _volumeWidget->setSilence();
+            }
+            else {
+                //解除静音
+                setHasVolumeUI();
+                _volumeWidget->recoverVolume();
+            }
+        }
+    }
+    if (watched == _volumeWidget) {
+        if (e->type() == QMouseEvent::Leave)
+            _volumeWidget->hide();
+    }
+    return QWidget::eventFilter(watched,e);
 }
 
 void MainWidget::onStateChanged(State state)
@@ -73,13 +121,13 @@ void MainWidget::onStateChanged(State state)
         ui->currentSlider->setEnabled(false);
         ui->currentLab->setText(getTimeText(0));
         ui->durationLab->setText(getTimeText(0));
-        ui->volumnBtn->setEnabled(false);
+        //ui->volumeBtn->setEnabled(false);
     }
     else {
         ui->playBtn->setEnabled(true);
         ui->stopBtn->setEnabled(true);
         ui->currentSlider->setEnabled(true);
-        ui->volumnBtn->setEnabled(true);
+        //ui->volumeBtn->setEnabled(true);
     }
 }
 
@@ -111,6 +159,18 @@ void MainWidget::on_stopBtn_clicked()
 {
     _player->stop();
     ui->displayWidget->free();
+}
+
+void MainWidget::setSilenceUI()
+{
+    ui->volumeBtn->setText(QChar(0xea0c));
+    _volumeBtnChecked = false;
+}
+
+void MainWidget::setHasVolumeUI()
+{
+    ui->volumeBtn->setText(QChar(0xea0d));
+    _volumeBtnChecked = true;
 }
 
 QString MainWidget::getTimeText(int value)

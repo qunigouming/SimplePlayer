@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>800</width>
-    <height>664</height>
+    <height>666</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -174,6 +174,11 @@
          </item>
          <item>
           <widget class="QLabel" name="durationLab">
+           <property name="font">
+            <font>
+             <pointsize>9</pointsize>
+            </font>
+           </property>
            <property name="text">
             <string>00:00:00</string>
            </property>
@@ -186,15 +191,31 @@
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="volumnBtn">
+       <widget class="QPushButton" name="volumeBtn">
         <property name="enabled">
          <bool>false</bool>
         </property>
+        <property name="maximumSize">
+         <size>
+          <width>30</width>
+          <height>30</height>
+         </size>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>-1</pointsize>
+         </font>
+        </property>
         <property name="styleSheet">
-         <string notr="true"/>
+         <string notr="true">font-size: 20px;
+background:transparent;
+border: none;</string>
         </property>
         <property name="text">
          <string/>
+        </property>
+        <property name="checked">
+         <bool>false</bool>
         </property>
        </widget>
       </item>

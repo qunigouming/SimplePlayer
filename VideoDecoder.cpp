@@ -33,6 +33,12 @@ VideoDecoder::~VideoDecoder()
     free();
 }
 
+VideoDecoder &VideoDecoder::getInstall()
+{
+    static VideoDecoder vDecoder;
+    return vDecoder;
+}
+
 int VideoDecoder::init(AVFormatContext **fmtCtx)
 {
     int ret = initDecoder(fmtCtx);

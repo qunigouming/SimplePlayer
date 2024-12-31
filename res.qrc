@@ -3,4 +3,7 @@
         <file>shapes.frag</file>
         <file>shapes.vert</file>
     </qresource>
+    <qresource prefix="/font">
+        <file>source/font/volume.ttf</file>
+    </qresource>
 </RCC>

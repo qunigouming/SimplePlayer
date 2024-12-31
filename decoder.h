@@ -25,14 +25,15 @@ class AudioDecoder : public QThread
 {
     Q_OBJECT
 public:
-    AudioDecoder();
-    ~AudioDecoder();
+    static AudioDecoder& getInstall();
+
     int init(AVFormatContext** fmtCtx);
     int getIndex();     //返回流索引，-1为错误
     void pushPkt(AVPacket pkt);
     void free();
     void clearQueue();
     double getClock();
+    void changeVolume(float volume);
 
 protected:
     void run() override;
@@ -44,11 +45,14 @@ signals:
     void clockChanged(double clock);
 
 private:
+    //禁止外部构造与析构
+    AudioDecoder();
+    ~AudioDecoder();
     int initDecoder(AVFormatContext** fmtCtx);
     int initSwr();
 
     int16_t clampInt16(int32_t value);          //阈值限定
-    void reducePcmVolum(int16_t *pcm_data, size_t num_samples, float reduction_factor);     //降低PCM数据的音量
+    void reducePcmVolum(int16_t *pcm_data, size_t num_samples);     //降低PCM数据的音量
 
 private:
     //音频重采样参数结构体
@@ -69,6 +73,7 @@ private:
     QAudioFormat _fmt;
     QAudioOutput* _out = nullptr;
     QIODevice* _io = nullptr;
+    float _volume = 1.0;
 
     double _clock = 0;
     BlockQueue<AVPacket> _pktList;
@@ -89,8 +94,7 @@ public:
         int size;
     }SwsSpec;
 
-    VideoDecoder();
-    ~VideoDecoder();
+    static VideoDecoder& getInstall();
     int init(AVFormatContext** fmtCtx);
     int getIndex();
     void pushPkt(AVPacket pkt);
@@ -112,6 +116,9 @@ signals:
     void clockChanged(double clock);
 
 private:
+    //禁止外部构造与析构
+    VideoDecoder();
+    ~VideoDecoder();
     int initDecoder(AVFormatContext** fmtCtx);
     int initSws();
 

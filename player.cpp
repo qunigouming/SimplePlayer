@@ -22,18 +22,16 @@ Player::Player(QObject *parent)
     : QObject{parent}
 {
     //av_log_set_level(AV_LOG_DEBUG);
-    _aDecoder = new AudioDecoder();
-    connect(this, &Player::stateChanged, _aDecoder, &AudioDecoder::onStateChanged);
-    _vDecoder = new VideoDecoder();
-    connect(this, &Player::stateChanged, _vDecoder, &VideoDecoder::onStateChanged);
-    connect(_aDecoder, &AudioDecoder::clockChanged, this, [this](double value){
-        _vDecoder->onAudioClockChanged(value);
+    connect(this, &Player::stateChanged, &AudioDecoder::getInstall(), &AudioDecoder::onStateChanged);
+    connect(this, &Player::stateChanged, &VideoDecoder::getInstall(), &VideoDecoder::onStateChanged);
+    connect(&AudioDecoder::getInstall(), &AudioDecoder::clockChanged, this, [this](double value){
+        VideoDecoder::getInstall().onAudioClockChanged(value);
         emit SyncTime(value);
     });
-    connect(_vDecoder, &VideoDecoder::clockChanged, this, [this](double value){
+    connect(&VideoDecoder::getInstall(), &VideoDecoder::clockChanged, this, [this](double value){
         emit SyncTime(value);
     });
-    connect(_vDecoder, &VideoDecoder::finished, this, [this]{
+    connect(&VideoDecoder::getInstall(), &VideoDecoder::finished, this, [this]{
         qDebug() << "结束视频线程";
     });
     avformat_network_init();
@@ -49,12 +47,7 @@ void Player::play()
     }
     setState(State::PLAYING);
     std::thread([this]{
-        try {
-            readFile();
-        }
-        catch (...) {
-            qDebug() << "捕获到异常";
-        }
+        readFile();
     }).detach();
 }
 
@@ -90,16 +83,6 @@ State&& Player::getState()
     return std::move(_state);
 }
 
-VideoDecoder *Player::getVideoPtr()
-{
-    return _vDecoder;
-}
-
-AudioDecoder *Player::getAudioPtr()
-{
-    return _aDecoder;
-}
-
 void Player::setState(State state)
 {
     if (state == _state) return;
@@ -129,18 +112,18 @@ void Player::readFile()
     av_dump_format(_fmtCtx, 0, _fileName.toUtf8().data(), 0);
     fflush(stderr);
 
-    if (_aDecoder->init(&_fmtCtx) >= 0) {
+    if (AudioDecoder::getInstall().init(&_fmtCtx) >= 0) {
         _hasAudio = true;
-        _aDecoder->start();
+        AudioDecoder::getInstall().start();
     }
 
-    if (_vDecoder->init(&_fmtCtx) >= 0) {
+    if (VideoDecoder::getInstall().init(&_fmtCtx) >= 0) {
         _hasVideo = true;
-        _vDecoder->setAudioExist(_hasAudio);
-        _vDecoder->start();
+        VideoDecoder::getInstall().setAudioExist(_hasAudio);
+        VideoDecoder::getInstall().start();
     }
     //seek操作使用的索引
-    int streamIndex = _hasAudio ? _aDecoder->getIndex() : _hasVideo ? _vDecoder->getIndex() : 0;
+    int streamIndex = _hasAudio ? AudioDecoder::getInstall().getIndex() : _hasVideo ? VideoDecoder::getInstall().getIndex() : 0;
     emit initFinished();
     AVPacket pkt;
     while (_state != State::STOP) {
@@ -152,20 +135,20 @@ void Player::readFile()
             ret = av_seek_frame(_fmtCtx, streamIndex, ts, AVSEEK_FLAG_BACKWARD);
             if (ret >= 0) {
                 if (_hasAudio)
-                    _aDecoder->clearQueue();
+                    AudioDecoder::getInstall().clearQueue();
                 if (_hasVideo)
-                    _vDecoder->clearQueue();
+                    VideoDecoder::getInstall().clearQueue();
             }
             _seekTime = -1;
         }
         ret = av_read_frame(_fmtCtx, &pkt);
         //给音视频缓冲区发送数据，使各自线程进行解码操作
         if (ret == 0) {
-            if (_hasAudio && pkt.stream_index == _aDecoder->getIndex()) {
-                _aDecoder->pushPkt(pkt);
+            if (_hasAudio && pkt.stream_index == AudioDecoder::getInstall().getIndex()) {
+                AudioDecoder::getInstall().pushPkt(pkt);
             }
-            else if (_hasVideo && pkt.stream_index == _vDecoder->getIndex()) {
-                _vDecoder->pushPkt(pkt);
+            else if (_hasVideo && pkt.stream_index == VideoDecoder::getInstall().getIndex()) {
+                VideoDecoder::getInstall().pushPkt(pkt);
             }
             else av_packet_unref(&pkt);
         }
@@ -190,13 +173,13 @@ void Player::free()
     qDebug() << "开始释放资源";
     //等待线程退出再释放AVFormatContext
     if (_hasAudio) {
-        _aDecoder->quit();
-        _aDecoder->wait();
+        AudioDecoder::getInstall().quit();
+        AudioDecoder::getInstall().wait();
         // _aDecoder->free();           //将释放交给各自解码器管理
     }
     if (_hasVideo) {
-        _vDecoder->quit();
-        _vDecoder->wait();
+        VideoDecoder::getInstall().quit();
+        VideoDecoder::getInstall().wait();
         // _vDecoder->free();
     }
     _hasAudio = false;

@@ -26,8 +26,6 @@ public:
     void seekTime(int time);        //进行跳转操作
     int getDurationTime();          //获取总时长
     State&& getState();             //获取播放器状态
-    VideoDecoder* getVideoPtr();    //获取视频解码器指针，用来与窗口连接信号
-    AudioDecoder* getAudioPtr();    //获取音频解码器指针，用来与窗口连接信号
 
 signals:
     void stateChanged(State state); //状态改变信号
@@ -44,7 +42,6 @@ private:
     State _state = State::STOP;     //此变量有两线程访问的风险
     int _seekTime = -1;             //seek操作变量，值为seek的时间，单位s
     QString _fileName;
-    AudioDecoder* _aDecoder = nullptr;
     VideoDecoder* _vDecoder = nullptr;
     bool _hasAudio = false;
     bool _hasVideo = false;

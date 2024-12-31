@@ -6,12 +6,15 @@
 #include "mainwidget.h"
 
 #include <QApplication>
+#include <QFontDatabase>
 
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
     qRegisterMetaType<State>("State");
     qRegisterMetaType<VideoDecoder::SwsSpec>("SwsSpec");
+    //导入字体库
+    QFontDatabase::addApplicationFont(":/font/source/font/volume.ttf");
     MainWidget w;
     w.show();
     return a.exec();

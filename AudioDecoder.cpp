@@ -17,6 +17,12 @@ if (ret < 0) { \
 #define CONTINUE(func) CODE(func, continue;)
 #define BREAK(func) CODE(func, break;)
 
+AudioDecoder &AudioDecoder::getInstall()
+{
+    static AudioDecoder adecoder;
+    return adecoder;
+}
+
 AudioDecoder::AudioDecoder() {
 }
 
@@ -68,8 +74,8 @@ void AudioDecoder::free()
     }
     swr_free(&_swrCtx);
     avcodec_free_context(&_decodeCtx);
-    _io->close();
-    _out->deleteLater();
+    if (_io)    _io->close();
+    if (_out)   _out->deleteLater();
     //_state = State::PLAYING;
 }
 
@@ -82,6 +88,11 @@ void AudioDecoder::clearQueue()
 double AudioDecoder::getClock()
 {
     return _clock;
+}
+
+void AudioDecoder::changeVolume(float volume)
+{
+    _volume = volume;
 }
 
 void AudioDecoder::run()
@@ -114,13 +125,7 @@ void AudioDecoder::run()
         if (ret < 0) {
             qDebug() << "abnormal data";
         }
-        reducePcmVolum((int16_t*)_outFrame->data[0], _inFrame->nb_samples, 0.8);
-        // for (int i = 0; i < _inFrame->nb_samples; ++i)
-        //     ((int16_t*)_outFrame->data[0])[i] >>= 1;
-        // qDebug() << _inFrame->nb_samples << _inFrame->channels;
-        // for (int i = 0; i < _inFrame->nb_samples; ++i)
-        //     for (int ch = 0; ch < _inFrame->channels; ++ch)
-        //         _outFrame->data[ch][i] /= 2;
+        reducePcmVolum((int16_t*)_outFrame->data[0], _inFrame->nb_samples);
         int size = ret * _outSpec.bytesPerSampleFrame;
         while (_out->bytesFree() < size);       //等待足够的字节缓存
         _io->write((const char*)_outFrame->data[0], size);
@@ -202,15 +207,15 @@ int16_t AudioDecoder::clampInt16(int32_t value)
     else return (int16_t)value;
 }
 
-void AudioDecoder::reducePcmVolum(int16_t *pcm_data, size_t num_samples, float reduction_factor)
+void AudioDecoder::reducePcmVolum(int16_t *pcm_data, size_t num_samples)
 {
     for (size_t i = 0; i < num_samples * 2; i += 2) { // 双声道，所以每次跳过两个采样点
         int32_t left_sample = pcm_data[i];
         int32_t right_sample = pcm_data[i + 1];
 
         // 将样本值乘以音量降低因子，并转换为32位整数以避免溢出
-        left_sample = (int32_t)(left_sample * reduction_factor);
-        right_sample = (int32_t)(right_sample * reduction_factor);
+        left_sample = (int32_t)(left_sample * _volume);
+        right_sample = (int32_t)(right_sample * _volume);
 
         // 将结果限制在PCM格式的有效范围内，并转换回16位整数
         pcm_data[i] = clampInt16(left_sample);

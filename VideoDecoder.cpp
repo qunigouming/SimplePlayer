@@ -188,6 +188,7 @@ int VideoDecoder::initDecoder(AVFormatContext **fmtCtx)
     //根据视频读出来的fps来设置播放的fps
     AVRational fps = _stream->r_frame_rate;
     videoFrame = fps.num / fps.den;
+    qDebug() << "videoFrame is :" << videoFrame;
     //qDebug() << _stream->r_frame_rate.num << "/" << _stream->r_frame_rate.den;
 }
 

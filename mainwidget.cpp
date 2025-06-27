@@ -4,6 +4,7 @@
 #include "displaywidget.h"
 #include <QEvent>
 #include <QKeyEvent>
+#include <QScreen>
 
 MainWidget::MainWidget(QWidget *parent)
     : QWidget(parent)
@@ -13,14 +14,20 @@ MainWidget::MainWidget(QWidget *parent)
     _player = new Player(this);
     ui->fileCombox->addItem(QString());
     ui->fileCombox->addItem("https://vs-cmaf-push-ww-live.akamaized.net/x=4/i=urn:bbc:pips:service:bbc_news_channel_hd/iptv_hd_abr_v1.mpd");
-    ui->fileCombox->addItem("rtmp://192.168.186.130:1935/live1");
+    ui->fileCombox->addItem("rtmp://192.168.186.130:1935/hls1");
+    ui->fileCombox->addItem("http://192.168.186.130/audio/Thriller.mp3");
     ui->fileCombox->setCurrentIndex(0);
     _volumeWidget = new Volume(this);
     _volumeWidget->installEventFilter(this);
     ui->volumeBtn->installEventFilter(this);
+    ui->currentSlider->installEventFilter(this);
     _volumeWidget->hide();
     ui->volumeBtn->setFont(QFont("volume"));
     ui->volumeBtn->setText(QChar(0xea0d));
+
+    _preview = new PreviewWidget(this);
+    _preview->hide();
+    //ui->currentSlider->setMouseTracking(true);
     connect(_player, &Player::stateChanged, this, &MainWidget::onStateChanged);
     connect(_player, &Player::initFinished, this, &MainWidget::onInitFinished);
     //connect第五个参数不填默认为AutoConnection，既两者同线程下用DirectConnection，异线程用QueuedConnection，使用事件队列处理信号槽，可能会导致OpenGL访问空指针问题，既程序崩溃，
@@ -107,6 +114,34 @@ bool MainWidget::eventFilter(QObject *watched, QEvent *e)
         if (e->type() == QMouseEvent::Leave)
             _volumeWidget->hide();
     }
+
+    //监听滑块
+    if (watched == ui->currentSlider && _preview->isRunning()) {
+        if (e->type() == QMouseEvent::Enter) {
+            //qDebug() << "mouse enter";
+            _preview->show();
+        }
+        if (e->type() == QMouseEvent::Leave) {
+            //qDebug() << "mouse Leave";
+            _preview->hide();
+        }
+        if (e->type() == QMouseEvent::MouseMove) {
+            //qDebug() << "mouse moving";
+            QMouseEvent* me = static_cast<QMouseEvent*>(e);
+            int position = ui->currentSlider->getSliderMovePoint(me->pos());
+
+            int previewX = me->globalX() - (_preview->width() >> 1);
+            int previewY = me->globalY() - _preview->height() - (ui->currentSlider->height() >> 1);
+            static int lastHeight = previewY;
+            //变化不大则固定高度
+            if (abs(lastHeight - previewY) < 20) {
+                previewY = lastHeight;
+            } else lastHeight = previewY;
+            _preview->move(mapFromGlobal(QPoint(previewX, previewY)));
+            _preview->seek(position);
+
+        }
+    }
     return QWidget::eventFilter(watched,e);
 }
 
@@ -121,6 +156,8 @@ void MainWidget::onStateChanged(State state)
         ui->currentSlider->setEnabled(false);
         ui->currentLab->setText(getTimeText(0));
         ui->durationLab->setText(getTimeText(0));
+        ui->displayWidget->free();
+        _preview->Stop();
         //ui->volumeBtn->setEnabled(false);
     }
     else {
@@ -133,9 +170,15 @@ void MainWidget::onStateChanged(State state)
 
 void MainWidget::onInitFinished()
 {
+    //设置进度条时间
     int duration = _player->getDurationTime();
     ui->currentSlider->setRange(0, duration);
     ui->durationLab->setText(getTimeText(duration));
+
+    //预览窗口准备
+    if (_player->hasVideo()) {
+        _preview->Start(_fileName);
+    }
 }
 
 void MainWidget::on_openFileBtn_clicked()
@@ -143,6 +186,7 @@ void MainWidget::on_openFileBtn_clicked()
     QString filename = (ui->fileCombox->currentIndex() != 0) ? ui->fileCombox->currentText() :
                                                                 QFileDialog::getOpenFileName(nullptr, "选择文件", "C:/Users/admin/Videos/material");
     if (filename.isEmpty()) return;
+    _fileName = filename;
     _player->setFileName(filename);
     _player->play();
 }
@@ -158,7 +202,6 @@ void MainWidget::on_playBtn_clicked()
 void MainWidget::on_stopBtn_clicked()
 {
     _player->stop();
-    ui->displayWidget->free();
 }
 
 void MainWidget::setSilenceUI()

@@ -20,6 +20,7 @@ public:
         assert(MaxCapacity > 0);
         _isClose = false;
     }
+
     ~BlockQueue()
     {
         Close();
@@ -29,6 +30,7 @@ public:
     {
         std::lock_guard<std::mutex> locker(_mtx);
         while (!_q.empty()) {
+            //release packet
             AVPacket t = _q.front();
             av_packet_unref(&t);
             _q.pop();

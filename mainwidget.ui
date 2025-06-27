@@ -83,6 +83,9 @@
    <item>
     <widget class="QWidget" name="widget_2" native="true">
      <layout class="QHBoxLayout" name="horizontalLayout_4" stretch="2,6,2,1">
+      <property name="spacing">
+       <number>6</number>
+      </property>
       <item>
        <widget class="QWidget" name="widget_4" native="true">
         <layout class="QHBoxLayout" name="horizontalLayout_3">
@@ -128,6 +131,51 @@
        <widget class="videoSlider" name="currentSlider">
         <property name="enabled">
          <bool>false</bool>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QSlider {
+    /* 设置整个滑动条的边距 */
+    padding: 0px 7px; /* 左右添加内边距 */
+}
+
+/* 轨道背景（未划过区域） */
+QSlider::groove:horizontal {
+    background: #e0e0e0;
+    height: 4px;
+    border-radius: 2px;
+}
+
+/* 已划过区域 */
+QSlider::sub-page:horizontal {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+        stop:0 #1ACFEB, stop:1 #2A7BFF);
+    height: 4px;
+    border-radius: 2px;
+}
+
+/* 滑块设计 */
+QSlider::handle:horizontal {
+    width: 14px;
+    height: 14px;
+    margin: -5px 0; /* 仅调整垂直方向外边距 */
+    background: white;
+    border: 2px solid #1ACFEB;
+    border-radius: 7px;
+    box-shadow: 0 0 3px rgba(26, 207, 235, 0.8);
+}
+
+/* 悬停效果 */
+QSlider::handle:horizontal:hover {
+    background: #f0f9ff;
+    border: 2px solid #2A7BFF;
+    box-shadow: 0 0 5px rgba(42, 123, 255, 0.9);
+}
+
+/* 按下效果 */
+QSlider::handle:horizontal:pressed {
+    background: #1ACFEB;
+    border: 2px solid white;
+}</string>
         </property>
         <property name="orientation">
          <enum>Qt::Horizontal</enum>

@@ -78,6 +78,16 @@ int Player::getDurationTime()
     return _fmtCtx ? round(_fmtCtx->duration * av_q2d(AV_TIME_BASE_Q)) : 0;
 }
 
+bool Player::hasAudio()
+{
+    return _hasAudio;
+}
+
+bool Player::hasVideo()
+{
+    return _hasVideo;
+}
+
 State&& Player::getState()
 {
     return std::move(_state);

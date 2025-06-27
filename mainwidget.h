@@ -5,6 +5,7 @@
 #include <QString>
 #include "player.h"
 #include "volume.h"
+#include "previewwidget.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -43,6 +44,8 @@ private:
     Ui::MainWidget *ui;
     Volume* _volumeWidget = nullptr;
     Player* _player;
+    PreviewWidget* _preview = nullptr;
+    QString _fileName;
 
     bool _volumeBtnChecked = true;        //按钮点击变量
 };

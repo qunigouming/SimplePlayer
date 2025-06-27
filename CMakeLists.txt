@@ -54,6 +54,8 @@ else()
             res.qrc
             videoslider.h videoslider.cpp
             volume.h volume.cpp volume.ui
+            previewwidget.h previewwidget.cpp
+
 
 
         )

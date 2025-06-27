@@ -25,6 +25,8 @@ public:
     void setFileName(QString fileName); //设置输入文件名
     void seekTime(int time);        //进行跳转操作
     int getDurationTime();          //获取总时长
+    bool hasAudio();
+    bool hasVideo();
     State&& getState();             //获取播放器状态
 
 signals:
